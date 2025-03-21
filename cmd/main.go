@@ -1,17 +1,31 @@
 package main
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"log"
+	"nateloeffel-dev-backend/internal/routes"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/session"
+)
 
 func main() {
 	app := fiber.New()
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		if c.Params("name") != "" {
-			return c.SendString("Hello " + c.Params("name") + "!")
-		}
-		return c.SendString("Where is John?")
+	// Init session/middleware store
+	// Sessions store in memory by default.
+	// Set CookieSecure to true for HTTPS in prod.
+	store := session.New(session.Config{
+		CookieHTTPOnly: true,
+		CookieSecure:   false,
 	})
 
-	app.Listen(":3000")
+	// stores sessions for each request
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("sessionStore", store)
+		return c.Next()
+	})
 
+	routes.SetupRoutes(app)
+
+	log.Fatal(app.Listen(":3000"))
 }
